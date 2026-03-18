@@ -1,0 +1,2459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Macro Tracker">
+<meta name="theme-color" content="#e4dfd8">
+<meta name="background-color" content="#e4dfd8">
+<style>
+  :root { color-scheme: light only; }
+  html { background: #e4dfd8 !important; }
+</style>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Macro Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e4dfd8;
+    --surface: #f0ede8;
+    --surface2: #e2ddd6;
+    --border: #d0cbc3;
+    --text: #1a1714;
+    --muted: #7a7570;
+    --cal: #e8c49e;
+    --cal-text: #8a5428;
+    --pro: #a8c4b6;
+    --pro-text: #2e6650;
+    --work: #c4b8d8;
+    --work-text: #5a4880;
+    --warn: #e8b8a8;
+    --r: 14px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html {
+    background: var(--bg);
+    min-height: 100%;
+    min-height: -webkit-fill-available;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: var(--sans);
+    color: var(--text);
+    font-size: 14px;
+    overscroll-behavior: none;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 18px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  header h1 { font-family: var(--mono); font-size: 15px; font-weight: 500; letter-spacing: -0.3px; }
+
+  .hdr-nav {
+    display: flex; align-items: center; gap: 6px; margin-left: auto;
+  }
+
+  .hdr-nav-btn {
+    background: none; border: none; font-size: 18px; color: var(--muted);
+    cursor: pointer; padding: 2px 6px; line-height: 1; border-radius: 6px;
+    font-family: var(--mono); transition: all 0.12s;
+  }
+  .hdr-nav-btn:active { background: var(--surface2); color: var(--text); }
+  .hdr-nav-btn:disabled { opacity: 0.25; pointer-events: none; }
+
+  .hdr-date { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 300; }
+  .hdr-date.past { color: #c07040; }
+
+  .hdr-reset {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    padding: 5px 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .hdr-reset:active { background: var(--surface2); }
+
+  .page { padding-bottom: 48px; max-width: 540px; margin: 0 auto; }
+
+  /* Stats */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; padding: 14px 14px 0;
+  }
+  .stat {
+    background: var(--surface); border-radius: 10px;
+    padding: 10px 6px; text-align: center; border: 1px solid var(--border);
+  }
+  .stat .v { font-family: var(--mono); font-size: 14px; font-weight: 500; display: block; line-height: 1.1; }
+  .stat .l { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; display: block; margin-top: 3px; }
+  .stat.good .v { color: #4a8a60; }
+  .stat.warn .v { color: #b05040; }
+  .stat.preview { background: rgba(168,212,182,0.2); border-color: rgba(140,190,155,0.4); }
+
+  .denom {
+    font-size: 9px; font-weight: 300; color: var(--muted);
+    letter-spacing: 0; margin-left: 1px;
+  }
+
+  /* Chart */
+  .chart-section { margin: 12px 14px 0; }
+  .chart-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .chart-title { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .status-pill {
+    font-family: var(--mono); font-size: 10px;
+    padding: 0 10px; border-radius: 20px; font-weight: 500;
+    height: 22px; line-height: 22px; display: inline-flex;
+    align-items: center; white-space: nowrap; overflow: hidden;
+  }
+  .status-pill.good { background: #b8ddc4; color: #1a5438; }
+  .status-pill.warn { background: #f0c8bc; color: #7a2818; }
+  .status-pill.neutral { background: var(--surface2); color: var(--muted); }
+
+  .chart-wrap {
+    background: var(--surface); border-radius: var(--r);
+    border: 1px solid var(--border); overflow: hidden;
+    width: 100%; aspect-ratio: 4/3; position: relative;
+  }
+  canvas { display: block; width: 100% !important; height: 100% !important; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 9px; color: var(--muted); }
+  .ld { width: 8px; height: 8px; border-radius: 50%; }
+  .ll { width: 14px; height: 2px; border-radius: 1px; }
+
+  /* Sections */
+  .section { margin: 14px 14px 0; background: var(--surface); border-radius: var(--r); border: 1px solid var(--border); overflow: hidden; }
+  .section-header { display: flex; align-items: center; padding: 13px 16px; cursor: pointer; user-select: none; gap: 8px; }
+  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); flex: 1; }
+  .chevron { font-size: 10px; color: var(--muted); transition: transform 0.2s; display: inline-block; }
+  .chevron.open { transform: rotate(180deg); }
+  .section-body { border-top: 1px solid var(--border); padding: 14px 16px; display: none; }
+  .section-body.open { display: block; }
+
+  /* Goals grid 2x2 */
+  .goals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Calculator equation */
+  .calc-equation {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface2); border-radius: 10px; border: 1px solid var(--border);
+    padding: 12px 14px; gap: 4px;
+  }
+
+  .calc-block {
+    display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1;
+  }
+
+  .calc-val {
+    font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--text);
+    line-height: 1;
+  }
+
+  .calc-val.loss { color: #4a8a60; }
+  .calc-val.gain { color: #b05040; }
+  .calc-val.maint { color: var(--muted); }
+
+  .calc-lbl {
+    font-family: var(--mono); font-size: 9px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+
+  .calc-op {
+    font-family: var(--mono); font-size: 16px; color: var(--muted);
+    font-weight: 300; flex-shrink: 0; padding: 0 2px; padding-bottom: 14px;
+  }
+  .input-group label { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 5px; position: relative; }
+  .input-group input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 11px; font-family: var(--mono);
+    font-size: 16px; color: var(--text); outline: none; -webkit-appearance: none;
+  }
+  .input-group input:focus { border-color: #b0bcc5; }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .tab {
+    flex: 1; padding: 12px 8px; font-family: var(--mono); font-size: 11px;
+    text-align: center; color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+  .add-panel { padding: 14px 16px; }
+
+  .food-form { display: grid; grid-template-columns: 1fr 68px 68px; gap: 7px; margin-bottom: 8px; }
+  .workout-form { display: grid; grid-template-columns: 1fr 100px; gap: 7px; margin-bottom: 8px; }
+  .workout-note { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 10px; font-style: italic; }
+
+  .food-form input, .workout-form input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 11px; font-family: var(--sans);
+    font-size: 16px; color: var(--text); outline: none; width: 100%; -webkit-appearance: none;
+  }
+  .food-form input:focus, .workout-form input:focus { border-color: #b0bcc5; }
+  .food-form input::placeholder, .workout-form input::placeholder { color: var(--muted); font-size: 12px; }
+
+  .presets {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px;
+    margin-bottom: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .presets::-webkit-scrollbar { display: none; }
+
+  .pill {
+    flex-shrink: 0; font-family: var(--mono); font-size: 10px;
+    padding: 5px 10px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; cursor: pointer; color: var(--muted); white-space: nowrap;
+    transition: all 0.12s; user-select: none; -webkit-user-select: none;
+  }
+  .pill:active { background: var(--pro); color: var(--pro-text); border-color: #90b8a8; }
+  .pill.selected { background: var(--pro); color: #1e5040; border-color: #90b8a8; font-weight: 500; }
+  .wpill.selected { background: var(--work); color: #362060; border-color: #b0a0c8; font-weight: 500; }
+  .wpill:active { background: var(--work); color: var(--work-text); border-color: #b0a0c8; }
+
+  .add-btn {
+    width: 100%; padding: 11px; background: var(--text); color: #faf9f7;
+    border: none; border-radius: 9px; font-family: var(--mono); font-size: 12px;
+    cursor: pointer; letter-spacing: 0.3px; -webkit-appearance: none;
+  }
+  .add-btn:active { opacity: 0.75; }
+
+  .form-btns { display: flex; gap: 8px; }
+
+  .clear-btn {
+    padding: 11px 16px; background: var(--surface2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 9px; font-family: var(--mono);
+    font-size: 12px; cursor: pointer; -webkit-appearance: none; white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .clear-btn:active { background: var(--border); color: var(--text); }
+
+  /* Log */
+  .log-section { margin: 14px 14px 0; background: var(--surface); border-radius: var(--r); border: 1px solid var(--border); overflow: hidden; }
+  .log-header { padding: 13px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .log-empty { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; padding: 20px; overflow: hidden; }
+  #theLog { background: var(--surface); overflow: hidden; }
+
+  .log-item {
+    display: grid; grid-template-columns: 20px 1fr auto auto 28px;
+    gap: 6px; align-items: center; padding: 10px 16px;
+    border-bottom: 1px solid var(--border); animation: fadeIn 0.18s ease;
+  }
+  .log-item:last-child { border-bottom: none; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+
+  .item-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+  .badge-cal { background: var(--cal); color: var(--cal-text); }
+  .badge-pro { background: var(--pro); color: var(--pro-text); }
+  .badge-work { background: var(--work); color: var(--work-text); }
+  .badge-burn { background: var(--warn); color: #903828; }
+
+  /* Swipe to delete */
+  .log-row-wrap {
+    position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .log-row-wrap:last-child { border-bottom: none; }
+
+  .log-item {
+    display: grid; grid-template-columns: 20px 1fr auto auto;
+    gap: 6px; align-items: center; padding: 10px 16px;
+    background: var(--surface);
+    transform: translateX(0); transition: transform 0.2s ease;
+    will-change: transform; position: relative; z-index: 1;
+  }
+  .log-item.swiped { transform: translateX(-72px); }
+
+  .swipe-del-btn {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 72px;
+    background: #e05040; color: white; border: none; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 0; visibility: hidden;
+  }
+  .log-row-wrap.revealing .swipe-del-btn,
+  .log-row-wrap:has(.log-item.swiped) .swipe-del-btn { visibility: visible; }
+
+  .log-item.editing {
+    display: flex; flex-wrap: wrap; align-items: center;
+    background: var(--surface2); cursor: default; gap: 6px;
+    transform: none !important;
+  }
+  .log-item.editing .item-name { flex: 1; min-width: 0; }
+  .log-item.editing .drag-handle { order: -1; }
+
+  .edit-fields {
+    width: 100%; display: grid; gap: 6px; margin-top: 8px;
+    padding-top: 8px; border-top: 1px solid var(--border);
+    animation: fadeIn 0.15s ease;
+  }
+  .edit-fields.food-fields { grid-template-columns: 1fr 72px 72px; }
+  .edit-fields.workout-fields { grid-template-columns: 1fr 100px; }
+
+  .edit-fields input {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 7px; padding: 7px 10px; font-family: var(--mono);
+    font-size: 16px; color: var(--text); outline: none; width: 100%;
+    -webkit-appearance: none;
+  }
+  .edit-fields input:focus { border-color: #b0bcc5; }
+
+  .edit-actions {
+    width: 100%; display: flex; gap: 6px; margin-top: 6px;
+  }
+  .edit-save {
+    flex: 1; padding: 8px; background: var(--text); color: #faf9f7;
+    border: none; border-radius: 7px; font-family: var(--mono); font-size: 11px;
+    cursor: pointer;
+  }
+  .edit-save:active { opacity: 0.75; }
+  .edit-cancel {
+    padding: 8px 14px; background: var(--surface2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 7px; font-family: var(--mono);
+    font-size: 11px; cursor: pointer;
+  }
+  .edit-cancel:active { background: var(--border); }
+
+  /* Drag handle */
+  .drag-handle {
+    color: var(--border); font-size: 14px; cursor: grab; padding: 0 2px;
+    user-select: none; -webkit-user-select: none; touch-action: none;
+    flex-shrink: 0; display: flex; align-items: center;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .log-item.dragging { opacity: 0.4; }
+  .log-item.drag-over { border-top: 2px solid #a0b8c8; }
+
+  /* Weight projection */
+  .tdee-note {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    font-style: italic; margin-bottom: 14px; line-height: 1.5;
+  }
+
+  .projection-card {
+    background: var(--surface2); border-radius: 10px;
+    border: 1px solid var(--border); padding: 14px 16px;
+  }
+
+  .proj-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0;
+  }
+
+  .proj-label {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.7px;
+  }
+
+  .proj-val {
+    font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text);
+  }
+
+  .proj-big { font-size: 17px; }
+  .proj-val.loss { color: #4a8a60; }
+  .proj-val.gain { color: #b05040; }
+  .proj-val.maint { color: var(--muted); }
+
+  .proj-divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+  .proj-bar-wrap { margin-top: 14px; }
+
+  .proj-bar-track {
+    height: 8px; background: var(--border); border-radius: 4px;
+    position: relative; overflow: hidden;
+  }
+
+  .proj-bar-fill {
+    position: absolute; top: 0; height: 100%; border-radius: 4px;
+    transition: all 0.4s ease; width: 50%; left: 50%;
+    transform-origin: left center;
+  }
+
+  .proj-bar-fill.loss { background: linear-gradient(90deg, transparent, #a8d4b4); transform: scaleX(-1); }
+  .proj-bar-fill.gain { background: linear-gradient(90deg, transparent, #e8b8a8); }
+  .proj-bar-fill.maint { background: var(--muted); width: 4px; left: calc(50% - 2px); }
+
+  .proj-bar-center {
+    position: absolute; top: 0; left: 50%; width: 2px; height: 100%;
+    background: #c8c4be; transform: translateX(-50%);
+  }
+
+  .proj-bar-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 9px; color: var(--muted);
+    margin-top: 5px; text-transform: uppercase; letter-spacing: 0.6px;
+  }
+
+  /* Unit toggle */
+  .unit-toggle {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  }
+
+  .unit-label {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.7px;
+  }
+
+  .unit-label.active { color: var(--text); font-weight: 500; }
+
+  .toggle-track {
+    position: relative; width: 36px; height: 20px;
+    background: var(--border); border-radius: 10px; cursor: pointer;
+    transition: background 0.2s; flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .toggle-track.kg { background: var(--surface3, #e0ddd7); }
+
+  .toggle-thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text); transition: transform 0.2s;
+  }
+
+  .toggle-track.kg .toggle-thumb { transform: translateX(16px); }
+
+  @keyframes dotPulse {
+    0%   { opacity: 1;   transform: scale(1); }
+    50%  { opacity: 0.45; transform: scale(1.55); }
+    100% { opacity: 1;   transform: scale(1); }
+  }
+
+  /* About */
+  .about-intro {
+    font-size: 13px; line-height: 1.6; color: var(--text);
+    margin-bottom: 16px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .about-intro strong { font-weight: 500; }
+
+  .about-block { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .about-block:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  .about-heading {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    margin-bottom: 8px; color: var(--text);
+  }
+
+  .about-icon {
+    font-size: 9px; font-family: var(--mono); font-weight: 500;
+    padding: 2px 7px; border-radius: 5px; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .about-body {
+    font-size: 12px; line-height: 1.65; color: var(--text);
+  }
+  .about-body strong { font-weight: 500; }
+  .about-body em { font-style: italic; color: var(--muted); }
+
+  .about-list {
+    margin: 8px 0 6px 14px; display: flex; flex-direction: column; gap: 5px;
+  }
+  .about-list li { font-size: 12px; line-height: 1.5; }
+  .about-list li strong { font-weight: 500; }
+
+  .about-formula {
+    display: inline-block; margin-top: 6px;
+    font-family: var(--mono); font-size: 10px;
+    background: var(--surface2); border-radius: 6px;
+    padding: 4px 8px; color: var(--muted); line-height: 1.6;
+  }
+
+  .about-note {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    font-style: italic; line-height: 1.5; margin-top: 14px;
+    padding-top: 14px; border-top: 1px solid var(--border);
+  }
+
+  /* RMR calculator */
+  .rmr-calc {
+    margin-top: 12px; background: var(--surface2);
+    border-radius: 10px; border: 1px solid var(--border); padding: 14px;
+  }
+
+  .rmr-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .rmr-field {
+    display: flex; flex-direction: column; gap: 5px;
+  }
+
+  .rmr-field-lbl {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.7px;
+  }
+
+  .sex-toggle {
+    display: flex; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--surface); height: 36px;
+  }
+
+  .sex-opt {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+
+  .sex-opt.active { background: var(--text); color: #faf9f7; }
+
+  .stepper {
+    display: flex; align-items: center; height: 36px;
+    border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; background: var(--surface);
+  }
+
+  .step-btn {
+    background: none; border: none; color: var(--muted);
+    font-size: 18px; line-height: 1; width: 36px; height: 36px;
+    cursor: pointer; font-family: var(--mono); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s;
+  }
+  .step-btn:active { background: var(--surface2); }
+
+  .stepper input {
+    flex: 1; border: none; background: transparent; text-align: center;
+    font-family: var(--mono); font-size: 16px; color: var(--text);
+    outline: none; width: 0; min-width: 0; padding: 0;
+    -webkit-appearance: none;
+  }
+  .stepper input::-webkit-inner-spin-button,
+  .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .rmr-result {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 12px; border-top: 1px solid var(--border);
+  }
+
+  .rmr-result-left {
+    display: flex; align-items: baseline; gap: 6px;
+  }
+
+  .rmr-result-val {
+    font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--text);
+  }
+
+  .rmr-result-lbl {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+  }
+
+  .rmr-use-btn {
+    font-family: var(--mono); font-size: 11px; color: #5a4880;
+    background: var(--work); border: none; border-radius: 8px;
+    padding: 7px 12px; cursor: pointer; white-space: nowrap;
+  }
+  .rmr-use-btn:active { opacity: 0.7; }
+
+  /* Chart tooltip overlay */
+  #chartWrap { cursor: pointer; }
+
+  .help-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--border); border: none; cursor: pointer;
+    font-family: var(--mono); font-size: 9px; font-weight: 500;
+    color: var(--muted); line-height: 1; vertical-align: middle;
+    margin-left: 4px; transition: all 0.15s;
+  }
+  .help-btn:active { background: var(--work); color: #5a4880; }
+
+  .help-tooltip {
+    position: absolute; top: 22px; left: 0; z-index: 200;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 11px;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    animation: fadeIn 0.12s ease;
+  }
+
+  .tooltip-link {
+    color: var(--text); text-decoration: underline;
+    text-underline-offset: 2px; cursor: pointer;
+  }
+  .tooltip-link:active { opacity: 0.6; }
+
+  .past-edit-btn {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--muted); padding: 5px 10px; cursor: pointer;
+    transition: all 0.12s;
+  }
+  .past-edit-btn:active { background: var(--surface2); }
+  .past-edit-btn.active { background: var(--text); color: #faf9f7; border-color: var(--text); }
+
+  /* Backup / restore */
+  .backup-note {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    margin-bottom: 14px; line-height: 1.5;
+  }
+  .backup-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+  }
+  .backup-btn {
+    display: flex; align-items: center; justify-content: center;
+    padding: 11px 10px; border-radius: 9px; font-family: var(--mono);
+    font-size: 11px; cursor: pointer; text-align: center;
+    border: 1px solid var(--border); -webkit-appearance: none;
+    transition: opacity 0.15s;
+  }
+  .export-btn { background: var(--text); color: #faf9f7; border-color: var(--text); }
+  .export-btn:active { opacity: 0.75; }
+  .import-btn { background: var(--surface2); color: var(--text); }
+  .import-btn:active { background: var(--border); }
+  .backup-status {
+    font-family: var(--mono); font-size: 11px; color: #4a8a60;
+    min-height: 16px; text-align: center;
+  }
+  .backup-status.error { color: #b05040; }
+
+  .import-paste-wrap { margin-top: 8px; display: flex; flex-direction: column; }
+  .import-paste-wrap textarea {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; font-family: var(--mono);
+    font-size: 16px; color: var(--text); outline: none; resize: none;
+    -webkit-appearance: none; line-height: 1.5;
+  }
+  .import-paste-wrap textarea:focus { border-color: #b0bcc5; }
+  .import-paste-wrap textarea::placeholder { color: var(--muted); }
+
+  /* Global: prevent iOS zoom on any input or textarea */
+  input, textarea, select { font-size: 16px !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>macro tracker</h1>
+  <div class="hdr-nav">
+    <button class="hdr-nav-btn" onclick="changeDay(-1)">‹</button>
+    <span class="hdr-date" id="todayDate"></span>
+    <button class="hdr-nav-btn" id="btnNextDay" onclick="changeDay(1)">›</button>
+  </div>
+</header>
+
+<div class="page">
+
+  <div class="stats-row">
+    <div class="stat" id="statPro">
+      <span class="v" id="totalProVal">0g<span class="denom" id="denomPro"></span></span>
+      <span class="l" id="labelPro">protein</span>
+    </div>
+    <div class="stat" id="statCal">
+      <span class="v" id="totalCalVal">0<span class="denom" id="denomCal"></span></span>
+      <span class="l" id="labelCal">net cal</span>
+    </div>
+    <div class="stat">
+      <span class="v" id="totalBurnVal">0</span>
+      <span class="l">active cal</span>
+    </div>
+    <div class="stat" id="statDensity">
+      <span class="v" id="densityVal">—<span class="denom" id="denomDensity"></span></span>
+      <span class="l">g/100cal</span>
+    </div>
+  </div>
+
+
+  <div class="chart-section">
+    <div class="chart-top">
+      <span class="chart-title">calories vs protein</span>
+      <span class="status-pill neutral" id="statusPill">no data yet</span>
+    </div>
+    <div class="chart-wrap" id="chartWrap">
+      <canvas id="chart"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="ld" style="background:#a0b8c8;border:1.5px solid #7a9fb0"></div>now</div>
+      <div class="legend-item"><div class="ld" style="background:rgba(190,178,218,0.7)"></div>history</div>
+      <div class="legend-item"><div class="ll" style="background:#c4b8d4"></div>density goal</div>
+      <div class="legend-item"><div class="ll" style="background:#a8c4b6"></div>protein goal</div>
+      <div class="legend-item"><div class="ll" style="background:#e8c49e"></div>cal goal</div>
+    </div>
+  </div>
+
+  <!-- Goals & Projection (combined) -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('goals')">
+      <span class="section-label">goals &amp; projection</span>
+      <span class="chevron" id="chevron-goals">▼</span>
+    </div>
+    <div class="section-body" id="body-goals">
+
+      <!-- Inputs row -->
+      <div class="goals-grid" style="margin-bottom:14px">
+        <div class="input-group">
+          <label>net calorie goal</label>
+          <input type="number" id="goalCal" value="2000" inputmode="numeric" oninput="saveGoals()">
+        </div>
+        <div class="input-group">
+          <label>protein goal (g)</label>
+          <input type="number" id="goalPro" value="200" inputmode="numeric" oninput="saveGoals()">
+        </div>
+        <div class="input-group">
+          <label>resting metabolic rate <button class="help-btn" onclick="openRmrHelp()" title="how to calculate your RMR">?</button></label>
+          <input type="number" id="tdee" value="2500" inputmode="numeric" oninput="saveTdee()">
+        </div>
+        <div class="input-group">
+          <label>units</label>
+          <div class="unit-toggle" style="margin-top:2px">
+            <span class="unit-label active" id="lbl-lbs">lbs</span>
+            <div class="toggle-track" id="unitToggle" onclick="toggleUnit()">
+              <div class="toggle-thumb"></div>
+            </div>
+            <span class="unit-label" id="lbl-kg">kg</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deficit equation -->
+      <div class="calc-equation" id="calcEquation">
+        <div class="calc-block">
+          <span class="calc-val" id="calcIntake">—</span>
+          <span class="calc-lbl">net cal goal</span>
+        </div>
+        <span class="calc-op">−</span>
+        <div class="calc-block">
+          <span class="calc-val" id="calcBurn">—</span>
+          <span class="calc-lbl">RMR</span>
+        </div>
+        <span class="calc-op">=</span>
+        <div class="calc-block">
+          <span class="calc-val" id="calcResult">—</span>
+          <span class="calc-lbl" id="calcResultLbl">per day</span>
+        </div>
+      </div>
+
+      <!-- Weight change -->
+      <div class="projection-card" style="margin-top:12px">
+        <div class="proj-row">
+          <span class="proj-label">est. weight change / week</span>
+          <span class="proj-val proj-big" id="projWeek">—</span>
+        </div>
+        <div class="proj-row">
+          <span class="proj-label">est. weight change / month</span>
+          <span class="proj-val" id="projMonth">—</span>
+        </div>
+        <div class="proj-bar-wrap">
+          <div class="proj-bar-track">
+            <div class="proj-bar-fill" id="projBarFill"></div>
+            <div class="proj-bar-center"></div>
+          </div>
+          <div class="proj-bar-labels">
+            <span>loss</span><span>maintenance</span><span>gain</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add Food / Workout -->
+  <div class="section">
+    <div class="tabs">
+      <div class="tab active" id="tab-food" onclick="switchTab('food')">🍽 food</div>
+      <div class="tab" id="tab-workout" onclick="switchTab('workout')">🏃 workout</div>
+    </div>
+
+    <div class="add-panel" id="panel-food">
+      <div class="presets" id="foodPresets"></div>
+      <div class="food-form">
+        <input type="text" id="foodName" placeholder="food name" autocomplete="off" autocorrect="off">
+        <input type="number" id="foodCal" placeholder="cal" inputmode="decimal" min="0">
+        <input type="number" id="foodPro" placeholder="g pro" inputmode="decimal" min="0">
+      </div>
+      <div class="form-btns">
+        <button class="clear-btn" onclick="clearFoodForm()">clear</button>
+        <button class="add-btn" onclick="addFood()">+ add food</button>
+      </div>
+    </div>
+
+    <div class="add-panel" id="panel-workout" style="display:none">
+      <p class="workout-note">logged workouts add to your total daily burn, widening your deficit</p>
+      <div class="presets" id="workoutPresets"></div>
+      <div class="workout-form">
+        <input type="text" id="workoutName" placeholder="activity name" autocomplete="off" autocorrect="off">
+        <input type="number" id="workoutBurn" placeholder="cal burned" inputmode="decimal" min="0">
+      </div>
+      <div class="form-btns">
+        <button class="clear-btn" onclick="clearWorkoutForm()">clear</button>
+        <button class="add-btn" onclick="addWorkout()">+ log workout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-section">
+    <div class="log-header">
+      <span class="section-label" id="logLabel">today's log</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="past-edit-btn" id="pastEditBtn" onclick="togglePastEdit()" style="display:none">edit</button>
+        <button class="hdr-reset" id="resetBtn" onclick="resetDay()">reset</button>
+      </div>
+    </div>
+    <div id="theLog"></div>
+  </div>
+
+  <!-- Data / Backup -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('data')">
+      <span class="section-label">backup &amp; restore</span>
+      <span class="chevron" id="chevron-data">▼</span>
+    </div>
+    <div class="section-body" id="body-data">
+      <div class="backup-note">Export your data as text and save it somewhere safe (Notes, email, etc.). To restore, paste it back below.</div>
+      <div class="backup-row">
+        <button class="backup-btn export-btn" onclick="exportData()">⬇ export</button>
+        <label class="backup-btn import-btn">
+          ⬆ import file
+          <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+        </label>
+      </div>
+      <div class="import-paste-wrap">
+        <textarea id="importPasteArea" placeholder="...or paste backup text here" rows="3"></textarea>
+        <button class="backup-btn export-btn" onclick="importFromPaste()" style="margin-top:6px;font-size:11px;">restore from paste</button>
+      </div>
+      <div class="backup-status" id="backupStatus"></div>
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('about')">
+      <span class="section-label">about &amp; goal setting</span>
+      <span class="chevron" id="chevron-about">▼</span>
+    </div>
+    <div class="section-body" id="body-about">
+
+      <div class="about-intro">
+        This app tracks <strong>protein density</strong> — how much protein you're getting per calorie eaten. The chart plots your food intake in real time. Log workouts to pull the dot down, reflecting a lower net intake. The goal is to stay to the right of the diagonal line: high protein, controlled calories.
+      </div>
+
+      <div class="about-block">
+        <div class="about-heading"><span class="about-icon" style="background:#e8c49e;color:#8a5428">cal</span> Net calorie goal</div>
+        <div class="about-body">
+          This is your target for <strong>food calories minus workout burns</strong>. Set it based on your goal relative to your RMR:
+          <ul class="about-list">
+            <li><strong>Fat loss</strong> — set 300–500 kcal below your RMR. A 500 kcal daily deficit yields roughly 1 lb / 0.45 kg of loss per week. Avoid going below 1,200 kcal (women) or 1,500 kcal (men) net.</li>
+            <li><strong>Maintenance</strong> — set equal to your RMR.</li>
+            <li><strong>Muscle gain</strong> — set 200–300 kcal above your RMR. Larger surpluses tend to add fat faster than muscle.</li>
+          </ul>
+          On days you work out, your food budget effectively increases by the calories burned — eat more, hit the same net.
+        </div>
+      </div>
+
+      <div class="about-block">
+        <div class="about-heading"><span class="about-icon" style="background:#a8c4b6;color:#2e6650">pro</span> Protein goal</div>
+        <div class="about-body">
+          Base it on your bodyweight and how hard you train:
+          <ul class="about-list">
+            <li><strong>Sedentary / general health</strong> — 0.36 g per lb (0.8 g/kg).</li>
+            <li><strong>Active / recomposition</strong> — 0.7–0.9 g per lb (1.6–2.0 g/kg). Sweet spot for most people training 3–5× per week.</li>
+            <li><strong>Aggressive cut or heavy training</strong> — up to 1.0 g per lb (2.2 g/kg) to preserve muscle in a deficit.</li>
+          </ul>
+          Example: 165 lb person training 4× per week → 165 × 0.8 = <strong>132 g/day</strong>.
+        </div>
+      </div>
+
+      <div class="about-block">
+        <div class="about-heading"><span class="about-icon" style="background:#c4b8d8;color:#5a4880">rmr</span> Resting metabolic rate</div>
+        <div class="about-body">
+          RMR is your sedentary daily burn — no exercise included. Workouts are logged separately and widen your deficit automatically. Use BMR × 1.2 as a starting point (accounts for basic daily movement). Treat it as an estimate and adjust based on real-world weight changes over 2–3 weeks.
+        </div>
+        <div class="rmr-calc">
+
+          <!-- Row 1: sex full width -->
+          <div class="rmr-field" style="margin-bottom:10px">
+            <span class="rmr-field-lbl">sex</span>
+            <div class="sex-toggle" id="sexToggle" onclick="toggleSex()">
+              <div class="sex-opt active" id="sexMale">male</div>
+              <div class="sex-opt" id="sexFemale">female</div>
+            </div>
+          </div>
+
+          <!-- Row 2: age + weight -->
+          <div class="rmr-grid" style="margin-bottom:10px">
+            <div class="rmr-field">
+              <span class="rmr-field-lbl">age</span>
+              <div class="stepper">
+                <button class="step-btn" onclick="stepField('rmrAge',-1)">−</button>
+                <input type="number" id="rmrAge" value="30" inputmode="decimal" oninput="calcRmr()">
+                <button class="step-btn" onclick="stepField('rmrAge',1)">+</button>
+              </div>
+            </div>
+            <div class="rmr-field">
+              <span class="rmr-field-lbl">weight (lbs)</span>
+              <div class="stepper">
+                <button class="step-btn" onclick="stepField('rmrWeight',-1)">−</button>
+                <input type="number" id="rmrWeight" value="165" inputmode="decimal" oninput="calcRmr()">
+                <button class="step-btn" onclick="stepField('rmrWeight',1)">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 3: height full width with ft + in -->
+          <div class="rmr-field" style="margin-bottom:12px">
+            <span class="rmr-field-lbl">height</span>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                <span style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px">ft</span>
+                <div class="stepper">
+                  <button class="step-btn" onclick="stepField('rmrHeightFt',-1)">−</button>
+                  <input type="number" id="rmrHeightFt" value="5" inputmode="decimal" oninput="calcRmr()">
+                  <button class="step-btn" onclick="stepField('rmrHeightFt',1)">+</button>
+                </div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                <span style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px">in</span>
+                <div class="stepper">
+                  <button class="step-btn" onclick="stepField('rmrHeightIn',-1)">−</button>
+                  <input type="number" id="rmrHeightIn" value="8" inputmode="decimal" oninput="calcRmr()">
+                  <button class="step-btn" onclick="stepField('rmrHeightIn',1)">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="rmr-result">
+            <div class="rmr-result-left">
+              <span class="rmr-result-val" id="rmrVal">—</span>
+              <span class="rmr-result-lbl">kcal / day</span>
+            </div>
+            <button class="rmr-use-btn" id="rmrUseBtn" onclick="useRmr()">use this →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-block">
+        <div class="about-heading"><span class="about-icon" style="background:#f0e8d8;color:#8a7060">chart</span> Reading the chart</div>
+        <div class="about-body">
+          X axis = protein eaten. Y axis = net calories (food − workout burns). Three reference lines:
+          <ul class="about-list">
+            <li><strong>Diagonal (purple)</strong> — your protein density target. Staying to the right means your food choices are protein-efficient enough to hit your protein goal within your calorie budget.</li>
+            <li><strong>Vertical (green)</strong> — your protein goal. Cross it to hit your daily target.</li>
+            <li><strong>Horizontal (peach)</strong> — your net calorie goal. Stay near or below it.</li>
+          </ul>
+          The ideal position is near the intersection of all three lines — the hollow target dot. Trail dots show how your position evolved throughout the day. Tap any dot to see what you logged.
+        </div>
+      </div>
+
+      <div class="about-note">
+        All calculations are estimates. Individual metabolic rates vary. Consult a registered dietitian or physician before making significant dietary changes.
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+const FOOD_PRESETS = [
+  { name: 'Chicken Breast (150g)', cal: 248, pro: 46 },
+  { name: 'Eggs ×2', cal: 143, pro: 13 },
+  { name: 'Greek Yogurt', cal: 100, pro: 17 },
+  { name: 'Tuna Can', cal: 110, pro: 26 },
+  { name: 'Protein Shake', cal: 150, pro: 30 },
+  { name: 'Salmon (150g)', cal: 280, pro: 39 },
+  { name: 'Cottage Cheese', cal: 110, pro: 14 },
+  { name: 'Tofu (100g)', cal: 76, pro: 8 },
+  { name: 'Lentils (1c)', cal: 230, pro: 18 },
+  { name: 'White Rice (1c)', cal: 206, pro: 4 },
+  { name: 'Oatmeal (1c)', cal: 150, pro: 6 },
+  { name: 'Banana', cal: 105, pro: 1 },
+  { name: 'Almonds (28g)', cal: 164, pro: 6 },
+  { name: 'Steak (150g)', cal: 320, pro: 43 },
+];
+
+const WORKOUT_PRESETS = [
+  { name: 'Run 30min', burn: 300 },
+  { name: 'Run 60min', burn: 600 },
+  { name: 'Walk 30min', burn: 150 },
+  { name: 'Cycling 45min', burn: 400 },
+  { name: 'Weights 45min', burn: 250 },
+  { name: 'HIIT 30min', burn: 350 },
+  { name: 'Swim 30min', burn: 280 },
+  { name: 'Yoga 60min', burn: 180 },
+];
+
+let foods = [], workouts = [];
+let goalCal = 2000, goalPro = 200, tdee = 2500, unitKg = false;
+let _activeDate = dateKey(new Date());
+
+function dateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function todayKey() { return dateKey(new Date()); }
+
+function isToday() { return _activeDate === todayKey(); }
+function isEditable() { return isToday() || _editingPastDay; }
+
+async function togglePastEdit() {
+  _editingPastDay = !_editingPastDay;
+  const btn = document.getElementById('pastEditBtn');
+  const addSection = document.querySelector('.section .tabs')?.closest('.section');
+  const resetBtn = document.getElementById('resetBtn');
+
+  if (_editingPastDay) {
+    btn.textContent = 'done';
+    btn.classList.add('active');
+    if (addSection) addSection.style.display = '';
+    if (resetBtn) resetBtn.style.display = '';
+  } else {
+    btn.textContent = 'edit';
+    btn.classList.remove('active');
+    if (addSection) addSection.style.display = 'none';
+    if (resetBtn) resetBtn.style.display = 'none';
+    await saveDayAsync();
+  }
+}
+
+function loadGlobals() {
+  try {
+    const s = JSON.parse(localStorage.getItem('macro_globals') || '{}');
+    goalCal = s.goalCal || 2000;
+    goalPro  = s.goalPro  || 200;
+    tdee     = s.tdee     || 2500;
+    unitKg   = s.unitKg   || false;
+    document.getElementById('goalCal').value = goalCal;
+    document.getElementById('goalPro').value  = goalPro;
+    document.getElementById('tdee').value     = tdee;
+    applyUnitUI();
+  } catch(e) {}
+}
+
+function saveGlobals() {
+  localStorage.setItem('macro_globals', JSON.stringify({ goalCal, goalPro, tdee, unitKg }));
+}
+
+function loadDay(dateStr) {
+  try {
+    const s = JSON.parse(localStorage.getItem('macro_day_' + dateStr) || '{}');
+    foods    = s.foods    || [];
+    workouts = s.workouts || [];
+  } catch(e) { foods = []; workouts = []; }
+}
+
+// ── Storage layer (IndexedDB with localStorage fallback) ──
+const DB_NAME = 'macroTracker', DB_VERSION = 1, STORE = 'data';
+let _db = null;
+
+async function openDB() {
+  if (_db) return _db;
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
+    req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+    req.onerror = () => resolve(null); // fallback to localStorage on error
+  });
+}
+
+async function dbGet(key) {
+  const db = await openDB();
+  if (!db) return localStorage.getItem(key);
+  return new Promise(resolve => {
+    const req = db.transaction(STORE).objectStore(STORE).get(key);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror = () => resolve(localStorage.getItem(key));
+  });
+}
+
+async function dbSet(key, value) {
+  const db = await openDB();
+  if (!db) { localStorage.setItem(key, value); return; }
+  return new Promise(resolve => {
+    const req = db.transaction(STORE, 'readwrite').objectStore(STORE).put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => { localStorage.setItem(key, value); resolve(); };
+  });
+}
+
+// ── Per-day and global storage ───────────────────────────
+async function saveDayAsync() {
+  if (!isEditable()) return;
+  await dbSet('macro_day_' + _activeDate, JSON.stringify({ foods, workouts }));
+}
+
+async function saveGlobalsAsync() {
+  await dbSet('macro_globals', JSON.stringify({ goalCal, goalPro, tdee, unitKg }));
+}
+
+async function loadDayAsync(dateStr) {
+  try {
+    const raw = await dbGet('macro_day_' + dateStr);
+    const s = JSON.parse(raw || '{}');
+    foods    = s.foods    || [];
+    workouts = s.workouts || [];
+  } catch(e) { foods = []; workouts = []; }
+}
+
+async function loadGlobalsAsync() {
+  try {
+    // Migrate from old macro_v3 key if present
+    const oldRaw = await dbGet('macro_v3') || localStorage.getItem('macro_v3');
+    if (oldRaw) {
+      const old = JSON.parse(oldRaw);
+      // Save old day data to today's slot if not already set
+      const todayRaw = await dbGet('macro_day_' + todayKey());
+      if (!todayRaw && (old.foods?.length || old.workouts?.length)) {
+        await dbSet('macro_day_' + todayKey(), JSON.stringify({ foods: old.foods || [], workouts: old.workouts || [] }));
+      }
+    }
+    const raw = await dbGet('macro_globals') || localStorage.getItem('macro_globals');
+    const s = JSON.parse(raw || (oldRaw || '{}'));
+    goalCal = s.goalCal || 2000;
+    goalPro = s.goalPro || 200;
+    tdee    = s.tdee    || 2500;
+    unitKg  = s.unitKg  || false;
+    document.getElementById('goalCal').value = goalCal;
+    document.getElementById('goalPro').value = goalPro;
+    document.getElementById('tdee').value    = tdee;
+    applyUnitUI();
+  } catch(e) {}
+}
+
+// Sync wrappers used by the rest of the app
+function saveDay() { saveDayAsync(); }
+function saveGlobals() { saveGlobalsAsync(); }
+function save() { saveDay(); }
+
+function loadGlobals() { /* called async from load() */ }
+function loadDay(d) { /* called async from load() */ }
+
+async function load() {
+  await loadGlobalsAsync();
+  await loadDayAsync(_activeDate);
+}
+
+async function changeDay(delta) {
+  const d = new Date(_activeDate + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const newKey = dateKey(d);
+  if (newKey > todayKey()) return;
+  _activeDate = newKey;
+  _editingId  = null;
+  _preview    = null;
+  _editingPastDay = false;
+  await loadDayAsync(_activeDate);
+  updateDateUI();
+  render();
+}
+
+function updateDateUI() {
+  const isT = isToday();
+  const d = new Date(_activeDate + 'T12:00:00');
+  const label = isT ? 'today' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const dateEl = document.getElementById('todayDate');
+  dateEl.textContent = label;
+  dateEl.className = 'hdr-date' + (isT ? '' : ' past');
+
+  // Disable next arrow on today
+  document.getElementById('btnNextDay').disabled = isT;
+
+  // Show/hide past day edit button and add section
+  const editBtn = document.getElementById('pastEditBtn');
+  const addSection = document.querySelector('.section .tabs')?.closest('.section');
+  const resetBtn = document.getElementById('resetBtn');
+  const logLabel = document.getElementById('logLabel');
+
+  if (isT) {
+    if (editBtn) editBtn.style.display = 'none';
+    if (addSection) addSection.style.display = '';
+    if (resetBtn) resetBtn.style.display = '';
+    if (logLabel) logLabel.textContent = 'today\'s log';
+  } else {
+    if (editBtn) editBtn.style.display = '';
+    if (addSection) addSection.style.display = 'none';
+    if (resetBtn) resetBtn.style.display = 'none';
+    if (logLabel) logLabel.textContent = 'log';
+  }
+}
+
+function toggleUnit() {
+  unitKg = !unitKg;
+  applyUnitUI();
+  saveGlobals();
+  updateProjection();
+}
+
+function resetDay() {
+  if (!isEditable()) return;
+  const btn = document.getElementById('resetBtn');
+  if (!btn) return;
+
+  if (btn.dataset.confirming === 'true') {
+    // Second tap — actually reset
+    btn.dataset.confirming = 'false';
+    btn.textContent = 'reset';
+    btn.style.background = '';
+    btn.style.color = '';
+    foods = []; workouts = [];
+    saveDay(); render();
+  } else {
+    // First tap — ask for confirmation
+    btn.dataset.confirming = 'true';
+    btn.textContent = 'sure?';
+    btn.style.background = '#c04030';
+    btn.style.color = '#fff';
+    // Auto-cancel after 3 seconds
+    setTimeout(() => {
+      if (btn.dataset.confirming === 'true') {
+        btn.dataset.confirming = 'false';
+        btn.textContent = 'reset';
+        btn.style.background = '';
+        btn.style.color = '';
+      }
+    }, 3000);
+  }
+}
+
+function applyUnitUI() {
+  document.getElementById('unitToggle').classList.toggle('kg', unitKg);
+  document.getElementById('lbl-lbs').classList.toggle('active', !unitKg);
+  document.getElementById('lbl-kg').classList.toggle('active', unitKg);
+}
+
+function saveGoals() {
+  goalCal = parseFloat(document.getElementById('goalCal').value) || 2000;
+  goalPro = parseFloat(document.getElementById('goalPro').value) || 200;
+  saveGlobals(); updateStats(); drawChart(); updateProjection();
+}
+
+function saveTdee() {
+  tdee = parseFloat(document.getElementById('tdee').value) || 2500;
+  saveGlobals(); updateProjection();
+}
+
+function updateProjection() {
+  const delta = goalCal - tdee;
+  const lbsPerWeek  = (delta * 7) / 3500;
+  const kgPerWeek   = (delta * 7) / 7700;
+  const lbsPerMonth = lbsPerWeek * 4.33;
+  const kgPerMonth  = kgPerWeek * 4.33;
+
+  const wVal = unitKg ? kgPerWeek  : lbsPerWeek;
+  const mVal = unitKg ? kgPerMonth : lbsPerMonth;
+  const unit = unitKg ? 'kg' : 'lbs';
+
+  const isLoss  = delta < -49;
+  const isGain  = delta > 49;
+  const isMaint = !isLoss && !isGain;
+  const cls = isMaint ? ' maint' : isLoss ? ' loss' : ' gain';
+
+  // Static deficit equation: net goal − RMR
+  document.getElementById('calcIntake').textContent = goalCal;
+  document.getElementById('calcBurn').textContent = Math.round(tdee);
+  const sign = delta > 0 ? '+' : '';
+  const resultEl = document.getElementById('calcResult');
+  resultEl.textContent = `${sign}${Math.round(delta)} kcal`;
+  resultEl.className = 'calc-val' + cls;
+  document.getElementById('calcResultLbl').textContent = isMaint ? 'maintenance' : isLoss ? 'deficit' : 'surplus';
+
+  // Weight rows
+  const wSign = wVal > 0 ? '+' : '';
+  const weekEl = document.getElementById('projWeek');
+  weekEl.textContent = isMaint ? '≈ 0  (maintenance)' : `${wSign}${wVal.toFixed(2)} ${unit} / week`;
+  weekEl.className = 'proj-val proj-big' + cls;
+
+  const monthEl = document.getElementById('projMonth');
+  monthEl.textContent = isMaint ? '' : `${wSign}${mVal.toFixed(1)} ${unit} / month`;
+  monthEl.className = 'proj-val' + cls;
+
+  // Bar
+  const fill = document.getElementById('projBarFill');
+  const clamped = Math.max(-1000, Math.min(1000, delta));
+  const pct = Math.abs(clamped) / 1000 * 50;
+
+  if (isMaint) {
+    fill.className = 'proj-bar-fill maint';
+    fill.style.width = '4px'; fill.style.left = 'calc(50% - 2px)';
+  } else if (isLoss) {
+    fill.className = 'proj-bar-fill loss';
+    fill.style.width = pct + '%'; fill.style.left = (50 - pct) + '%';
+  } else {
+    fill.className = 'proj-bar-fill gain';
+    fill.style.width = pct + '%'; fill.style.left = '50%';
+  }
+}
+
+function getTotals() {
+  const grossCal = foods.reduce((a, f) => a + f.cal, 0);
+  const pro = foods.reduce((a, f) => a + f.pro, 0);
+  const burn = workouts.reduce((a, w) => a + w.burn, 0);
+  return { grossCal, pro, burn };
+}
+
+
+function clearFoodForm() {
+  ['foodName','foodCal','foodPro'].forEach(id => document.getElementById(id).value = '');
+  clearSelectedPill('foodPresets');
+  _preview = null;
+  updateStats();
+}
+
+function clearWorkoutForm() {
+  ['workoutName','workoutBurn'].forEach(id => document.getElementById(id).value = '');
+  clearSelectedPill('workoutPresets');
+  _preview = null;
+  updateStats();
+}
+
+function clearSelectedPill(container) {
+  document.querySelectorAll(`#${container} .pill`).forEach(p => p.classList.remove('selected'));
+}
+
+function fillFood(name, cal, pro) {
+  const selected = document.querySelector('#foodPresets .pill.selected');
+  if (selected && selected.dataset.name === name) {
+    clearFoodForm(); return;
+  }
+  document.getElementById('foodName').value = name;
+  document.getElementById('foodCal').value = cal;
+  document.getElementById('foodPro').value = pro;
+  document.activeElement?.blur();
+  clearSelectedPill('foodPresets');
+  clearSelectedPill('workoutPresets');
+  document.querySelectorAll('#foodPresets .pill').forEach(p => {
+    if (p.dataset.name === name) p.classList.add('selected');
+  });
+  updatePreview();
+}
+
+function fillWorkout(name, burn) {
+  const selected = document.querySelector('#workoutPresets .pill.selected');
+  if (selected && selected.dataset.name === name) {
+    clearWorkoutForm(); return;
+  }
+  document.getElementById('workoutName').value = name;
+  document.getElementById('workoutBurn').value = burn;
+  document.activeElement?.blur();
+  clearSelectedPill('foodPresets');
+  clearSelectedPill('workoutPresets');
+  document.querySelectorAll('#workoutPresets .pill').forEach(p => {
+    if (p.dataset.name === name) p.classList.add('selected');
+  });
+  updateWorkoutPreview();
+}
+
+function addFood() {
+  if (!isEditable()) return;
+  const n = document.getElementById('foodName').value.trim();
+  const c = parseFloat(document.getElementById('foodCal').value);
+  const p = parseFloat(document.getElementById('foodPro').value);
+  if (!n || isNaN(c) || isNaN(p)) return;
+  document.activeElement?.blur();
+  foods.push({ id: Date.now(), name: n, cal: c, pro: p, ts: Date.now() });
+  _preview = null;
+  clearSelectedPill('foodPresets');
+  save(); render();
+  ['foodName','foodCal','foodPro'].forEach(id => document.getElementById(id).value = '');
+}
+
+function addWorkout() {
+  if (!isEditable()) return;
+  const n = document.getElementById('workoutName').value.trim();
+  const b = parseFloat(document.getElementById('workoutBurn').value);
+  if (!n || isNaN(b)) return;
+  document.activeElement?.blur();
+  workouts.push({ id: Date.now(), name: n, burn: b, ts: Date.now() });
+  _preview = null;
+  clearSelectedPill('workoutPresets');
+  save(); render();
+  ['workoutName','workoutBurn'].forEach(id => document.getElementById(id).value = '');
+}
+
+function removeFood(id) { if (!isEditable()) return; foods = foods.filter(f => f.id !== id); save(); render(); }
+function removeWorkout(id) { if (!isEditable()) return; workouts = workouts.filter(w => w.id !== id); save(); render(); }
+
+// Build the position trail
+function getTrailEntries() {
+  return [
+    ...foods.map(f => ({ ts: f.ts, name: f.name, cal: f.cal, pro: f.pro, type: 'food' })),
+    ...workouts.map(w => ({ ts: w.ts, name: w.name, burn: w.burn, type: 'workout' }))
+  ].sort((a, b) => a.ts - b.ts);
+}
+
+function getTrail() {
+  const entries = [
+    ...foods.map(f => ({ ts: f.ts, cal: f.cal, pro: f.pro, type: 'food' })),
+    ...workouts.map(w => ({ ts: w.ts, burn: w.burn, type: 'workout' }))
+  ].sort((a, b) => a.ts - b.ts);
+
+  let cumCal = 0, cumPro = 0, cumBurn = 0;
+  const pts = [];
+  for (const e of entries) {
+    if (e.type === 'food') { cumCal += e.cal; cumPro += e.pro; }
+    else { cumBurn += e.burn; }
+    pts.push({ cal: Math.max(0, cumCal - cumBurn), pro: cumPro });
+  }
+  return pts;
+}
+
+function render() {
+  if (_chartRaf) { cancelAnimationFrame(_chartRaf); _chartRaf = null; }
+  _pulseStart = null;
+  _selectedDot = null;
+  updateStats(); renderLog(); drawChart(); updateProjection();
+}
+
+function updateStats() {
+  const t = getTotals();
+  const netCal = Math.max(0, t.grossCal - t.burn);
+  const isPreview = !!_preview;
+
+  // Deltas from preview
+  const deltaPro = isPreview ? (_preview.pro || 0) : 0;
+  const deltaCal = isPreview ? ((_preview.cal || 0) - (_preview.burn || 0)) : 0;
+
+  // For density/on-track calculation use projected values
+  const prevPro = t.pro + deltaPro;
+  const prevNet = Math.max(0, netCal + deltaCal);
+
+  // Main values — never change, stay stable
+  document.getElementById('totalProVal').firstChild.textContent = Math.round(t.pro) + 'g';
+  document.getElementById('denomPro').textContent = ' / ' + goalPro + 'g';
+  document.getElementById('totalCalVal').firstChild.textContent = Math.round(netCal);
+  document.getElementById('denomCal').textContent = ' / ' + goalCal;
+  document.getElementById('totalBurnVal').textContent = Math.round(t.burn + (isPreview ? (_preview.burn || 0) : 0));
+
+  // Delta shown in the label row — no reflow on the number line
+  const labelPro = document.getElementById('labelPro');
+  const labelCal = document.getElementById('labelCal');
+  if (isPreview && deltaPro !== 0) {
+    labelPro.textContent = (deltaPro > 0 ? '+' : '') + Math.round(deltaPro) + 'g';
+    labelPro.style.color = '#4a8a60';
+  } else {
+    labelPro.textContent = 'protein';
+    labelPro.style.color = '';
+  }
+  if (isPreview && deltaCal !== 0) {
+    labelCal.textContent = (deltaCal > 0 ? '+' : '') + Math.round(deltaCal) + ' cal';
+    labelCal.style.color = deltaCal > 0 ? '#b05040' : '#4a8a60';
+  } else {
+    labelCal.textContent = 'net cal';
+    labelCal.style.color = '';
+  }
+
+  const currentDensity = prevNet > 0 ? prevPro / prevNet : 0;
+  const goalDensity = goalPro / goalCal;
+  const onTrack = prevNet > 0 && currentDensity >= goalDensity;
+
+  const density = prevNet > 0 ? (prevPro / prevNet * 100).toFixed(1) : null;
+  const gd = goalPro / goalCal * 100;
+  document.getElementById('densityVal').firstChild.textContent = density || '—';
+  document.getElementById('denomDensity').textContent = density ? ' / ' + gd.toFixed(1) : '';
+  document.getElementById('statDensity').className = 'stat' + (density ? (parseFloat(density) >= gd ? ' good' : ' warn') : '');
+
+  const pill = document.getElementById('statusPill');
+  const overCal = netCal > goalCal;
+  const bothMet = onTrack && !overCal && t.grossCal > 0 && t.pro >= goalPro;
+
+  if (!t.grossCal) {
+    pill.className = 'status-pill neutral'; pill.textContent = 'no data yet';
+  } else if (bothMet) {
+    pill.className = 'status-pill good'; pill.textContent = '🏁 goals reached!';
+  } else if (!isToday()) {
+    if (overCal) {
+      pill.className = 'status-pill warn'; pill.textContent = '↑ over calorie goal';
+    } else if (onTrack) {
+      pill.className = 'status-pill good'; pill.textContent = '✓ density goal met';
+    } else {
+      pill.className = 'status-pill warn'; pill.textContent = '↓ density low';
+    }
+  } else if (onTrack) {
+    pill.className = 'status-pill good'; pill.textContent = '✓ on track';
+  } else {
+    pill.className = 'status-pill warn'; pill.textContent = '↓ off track';
+  }
+}
+
+let _editingId = null;
+
+function renderLog() {
+  const el = document.getElementById('theLog');
+  const all = [
+    ...foods.map(f => ({ ...f, type: 'food' })),
+    ...workouts.map(w => ({ ...w, type: 'workout' }))
+  ].sort((a, b) => a.ts - b.ts);
+
+  if (!all.length) { el.innerHTML = '<div class="log-empty">nothing logged yet</div>'; return; }
+
+  el.innerHTML = all.map(item => {
+    const isEditing = _editingId === item.id;
+    const editFields = isEditing ? (item.type === 'food'
+      ? `<div class="edit-fields food-fields">
+           <input id="ei-name-${item.id}" type="text" value="${item.name}" autocomplete="off">
+           <input id="ei-cal-${item.id}" type="number" value="${item.cal}" inputmode="decimal">
+           <input id="ei-pro-${item.id}" type="number" value="${item.pro}" inputmode="decimal">
+         </div>`
+      : `<div class="edit-fields workout-fields">
+           <input id="ei-name-${item.id}" type="text" value="${item.name}" autocomplete="off">
+           <input id="ei-burn-${item.id}" type="number" value="${item.burn}" inputmode="decimal">
+         </div>`)
+      : '';
+    const editActions = isEditing
+      ? `<div class="edit-actions">
+           <button class="edit-cancel" onclick="cancelEdit(event)">cancel</button>
+           <button class="edit-save" onclick="saveEdit(event, ${item.id}, '${item.type}')">save</button>
+         </div>`
+      : '';
+
+    const delFn = item.type === 'food' ? `removeFood(${item.id})` : `removeWorkout(${item.id})`;
+
+    const row = item.type === 'food'
+      ? `<span class="drag-handle" onclick="event.stopPropagation()" ontouchstart="handleDragStart(event,${item.id})" ontouchmove="handleDragMove(event)" ontouchend="handleDragEnd(event)">⠿</span>
+         <span class="item-name">${item.name}</span>
+         <span class="badge badge-cal">${item.cal} cal</span>
+         <span class="badge badge-pro">${item.pro}g</span>`
+      : `<span class="drag-handle" onclick="event.stopPropagation()" ontouchstart="handleDragStart(event,${item.id})" ontouchmove="handleDragMove(event)" ontouchend="handleDragEnd(event)">⠿</span>
+         <span class="item-name">${item.name}</span>
+         <span class="badge badge-work">workout</span>
+         <span class="badge badge-burn">+${item.burn} burned</span>`;
+
+    return `<div class="log-row-wrap" data-id="${item.id}">
+      <button class="swipe-del-btn" onclick="${delFn}">remove</button>
+      <div class="log-item${isEditing ? ' editing' : ''}" data-id="${item.id}" data-type="${item.type}"
+           onclick="toggleEdit(event, ${item.id})"
+           ontouchstart="swipeStart(event)" ontouchmove="swipeMove(event)" ontouchend="swipeEnd(event, ${item.id}, '${item.type}')">
+        ${row}
+        ${editFields}${editActions}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function closeAllSwipes() {
+  document.querySelectorAll('.log-item.swiped').forEach(el => el.classList.remove('swiped'));
+}
+
+function toggleEdit(e, id) {
+  if (e.target.closest('.edit-fields, .edit-actions, .drag-handle')) return;
+  closeAllSwipes();
+  _editingId = (_editingId === id) ? null : id;
+  renderLog();
+  if (_editingId) {
+    const nameEl = document.getElementById(`ei-name-${id}`);
+    if (nameEl) setTimeout(() => nameEl.focus(), 50);
+  }
+}
+
+// ── Swipe to delete ──────────────────────────────────────
+let _swipeState = null;
+
+function swipeStart(e) {
+  if (e.target.closest('.drag-handle, .edit-fields, .edit-actions')) return;
+  const touch = e.touches[0];
+  _swipeState = { startX: touch.clientX, startY: touch.clientY, moved: false, el: e.currentTarget };
+}
+
+function swipeMove(e) {
+  if (!_swipeState) return;
+  const touch = e.touches[0];
+  const dx = touch.clientX - _swipeState.startX;
+  const dy = touch.clientY - _swipeState.startY;
+
+  if (!_swipeState.moved && Math.abs(dy) > Math.abs(dx)) { _swipeState = null; return; }
+  if (Math.abs(dx) > 6) _swipeState.moved = true;
+  if (!_swipeState.moved) return;
+
+  e.preventDefault();
+  const clampedDx = Math.min(0, Math.max(-80, dx));
+  _swipeState.el.style.transform = `translateX(${clampedDx}px)`;
+  _swipeState.el.style.transition = 'none';
+
+  // Show the red button as soon as we start sliding left
+  if (clampedDx < 0) {
+    _swipeState.el.closest('.log-row-wrap')?.classList.add('revealing');
+  }
+}
+
+function swipeEnd(e, id, type) {
+  if (!_swipeState) return;
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - _swipeState.startX;
+  const el = _swipeState.el;
+  const wrap = el.closest('.log-row-wrap');
+  _swipeState = null;
+
+  el.style.transition = '';
+  wrap?.classList.remove('revealing');
+
+  if (dx < -40) {
+    document.querySelectorAll('.log-item.swiped').forEach(other => {
+      if (other !== el) other.classList.remove('swiped');
+    });
+    el.classList.add('swiped');
+    el.style.transform = '';
+  } else {
+    el.classList.remove('swiped');
+    el.style.transform = '';
+  }
+}
+
+// Tap anywhere to close swipes
+document.addEventListener('touchstart', e => {
+  const swiped = document.querySelectorAll('.log-item.swiped');
+  if (swiped.length && !e.target.closest('.swipe-del-btn')) {
+    swiped.forEach(el => el.classList.remove('swiped'));
+  }
+}, { passive: true });
+
+function cancelEdit(e) {
+  e.stopPropagation();
+  _editingId = null;
+  renderLog();
+}
+
+function saveEdit(e, id, type) {
+  e.stopPropagation();
+  if (type === 'food') {
+    const f = foods.find(f => f.id === id);
+    if (!f) return;
+    const n = document.getElementById(`ei-name-${id}`).value.trim();
+    const c = parseFloat(document.getElementById(`ei-cal-${id}`).value);
+    const p = parseFloat(document.getElementById(`ei-pro-${id}`).value);
+    if (!n || isNaN(c) || isNaN(p)) return;
+    f.name = n; f.cal = c; f.pro = p;
+  } else {
+    const w = workouts.find(w => w.id === id);
+    if (!w) return;
+    const n = document.getElementById(`ei-name-${id}`).value.trim();
+    const b = parseFloat(document.getElementById(`ei-burn-${id}`).value);
+    if (!n || isNaN(b)) return;
+    w.name = n; w.burn = b;
+  }
+  _editingId = null;
+  // Force persist — bypass isEditable check since user explicitly saved an edit
+  localStorage.setItem('macro_day_' + _activeDate, JSON.stringify({ foods, workouts }));
+  dbSet('macro_day_' + _activeDate, JSON.stringify({ foods, workouts }));
+  render();
+}
+
+// ── Touch drag to reorder ────────────────────────────────
+let _dragState = null; // { id, el, startY, cloneEl, items }
+
+function reorderItems(fromId, toId) {
+  const all = [
+    ...foods.map(f => ({ ...f, type: 'food' })),
+    ...workouts.map(w => ({ ...w, type: 'workout' }))
+  ].sort((a, b) => a.ts - b.ts);
+
+  const fromIdx = all.findIndex(i => i.id === fromId);
+  const toIdx   = all.findIndex(i => i.id === toId);
+  if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+
+  const reordered = [...all];
+  const [moved] = reordered.splice(fromIdx, 1);
+  reordered.splice(toIdx, 0, moved);
+
+  const base = Date.now() - reordered.length * 1000;
+  reordered.forEach((item, i) => {
+    const newTs = base + i * 1000;
+    if (item.type === 'food') { const f = foods.find(f => f.id === item.id); if (f) f.ts = newTs; }
+    else { const w = workouts.find(w => w.id === item.id); if (w) w.ts = newTs; }
+  });
+  save(); render();
+}
+
+function handleDragStart(e, id) {
+  e.stopPropagation();
+  const touch = e.touches[0];
+  const el = e.currentTarget.closest('.log-item');
+  const rect = el.getBoundingClientRect();
+
+  // Create a visual clone
+  const clone = el.cloneNode(true);
+  clone.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;
+    opacity:0.9;background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:1000;pointer-events:none;transition:none;`;
+  document.body.appendChild(clone);
+
+  el.style.opacity = '0.3';
+
+  _dragState = {
+    id, el, clone,
+    startY: touch.clientY,
+    offsetY: touch.clientY - rect.top,
+    currentOverId: null
+  };
+}
+
+function handleDragMove(e) {
+  if (!_dragState) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const { clone, offsetY } = _dragState;
+
+  clone.style.top = (touch.clientY - offsetY) + 'px';
+
+  // Find which item we're hovering over
+  clone.style.display = 'none';
+  const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+  clone.style.display = '';
+
+  const itemUnder = elUnder?.closest('.log-item');
+  const idUnder = itemUnder ? parseInt(itemUnder.dataset.id) : null;
+
+  // Update highlight
+  document.querySelectorAll('.log-item').forEach(el => el.classList.remove('drag-over'));
+  if (itemUnder && idUnder !== _dragState.id) {
+    itemUnder.classList.add('drag-over');
+    _dragState.currentOverId = idUnder;
+  } else {
+    _dragState.currentOverId = null;
+  }
+}
+
+function handleDragEnd(e) {
+  if (!_dragState) return;
+  const { id, el, clone, currentOverId } = _dragState;
+
+  clone.remove();
+  el.style.opacity = '';
+  document.querySelectorAll('.log-item').forEach(el => el.classList.remove('drag-over'));
+  _dragState = null;
+
+  if (currentOverId && currentOverId !== id) {
+    reorderItems(id, currentOverId);
+  }
+}
+
+function renderPresets() {
+  document.getElementById('foodPresets').innerHTML = FOOD_PRESETS.map(p =>
+    `<div class="pill" tabindex="-1" data-name="${p.name}" onmousedown="event.preventDefault()" onclick="fillFood('${p.name}',${p.cal},${p.pro})">${p.name}</div>`
+  ).join('');
+  document.getElementById('workoutPresets').innerHTML = WORKOUT_PRESETS.map(w =>
+    `<div class="pill wpill" tabindex="-1" data-name="${w.name}" onmousedown="event.preventDefault()" onclick="fillWorkout('${w.name}',${w.burn})">${w.name}</div>`
+  ).join('');
+}
+
+let _chartRaf = null;
+let _pulseStart = null;
+let _selectedDot = null;
+let _dotHitTargets = [];
+let _segmentHitTargets = []; // [{ x1,y1,x2,y2, label, sub, midX, midY }]
+let _preview = null;
+let _currentDotLabelZone = null;
+
+function drawChart() {
+  if (_chartRaf) { cancelAnimationFrame(_chartRaf); _chartRaf = null; }
+  _pulseStart = null;
+
+  const wrap = document.getElementById('chartWrap');
+  const canvas = document.getElementById('chart');
+
+  function frame(now) {
+    if (!_pulseStart) _pulseStart = now;
+    const elapsed = now - _pulseStart;
+    const pulse = Math.sin(elapsed / 1800 * Math.PI * 2) * 0.5 + 0.5;
+
+    // Re-read dimensions every frame — ensures stale state never persists after removals
+    const dpr = window.devicePixelRatio || 1;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+
+    const pad = { top: 22, right: 22, bottom: 40, left: 46 };
+    const cw = W - pad.left - pad.right, ch = H - pad.top - pad.bottom;
+
+    const ctx = canvas.getContext('2d');
+    ctx.resetTransform();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const t = getTotals();
+    const hasDot = t.grossCal > 0 || t.pro > 0;
+    const netCal = Math.max(0, t.grossCal - t.burn);
+    const trail = getTrail();
+    const slopeCalPerPro = goalCal / goalPro;
+    const prevPro = _preview ? (t.pro + (_preview.pro || 0)) : 0;
+    const curNetCal = Math.max(0, t.grossCal - t.burn);
+    const prevNet = _preview ? Math.max(0, curNetCal + (_preview.cal || 0) - (_preview.burn || 0)) : 0;
+    const allP = [t.pro, goalPro, prevPro, ...trail.map(p => p.pro), 10].filter(v => v > 0);
+    const allC = [netCal, goalCal, prevNet, ...trail.map(p => p.cal), 100].filter(v => v > 0);
+    const proStep = 50, calStep = 500;
+    const maxX = Math.max(proStep, Math.ceil(Math.max(...allP) * 1.15 / proStep) * proStep);
+    const maxY = Math.max(calStep, Math.ceil(Math.max(...allC) * 1.15 / calStep) * calStep);
+    const tx = v => pad.left + (v / maxX) * cw;
+    const ty = v => pad.top + ch - (v / maxY) * ch;
+
+    // Zone fills — computed carefully to avoid overlap
+    // The diagonal goal line: cal = pro * slopeCalPerPro
+    const lineTopPro = maxY / slopeCalPerPro;
+    // So the diagonal goal line passes exactly through (goalPro, goalCal) — the target dot
+
+    // Green zone: right of diagonal AND below goalCal
+    // Bounded by: origin → diagonal up to (goalPro, goalCal) → right to (maxX, goalCal) → down to (maxX, 0) → back
+    const greenZone = new Path2D();
+    greenZone.moveTo(tx(0), ty(0));
+    // Follow diagonal up to min(goalCal, maxY)
+    const diagTopPro = Math.min(goalPro, lineTopPro);
+    const diagTopCal = Math.min(goalCal, slopeCalPerPro * diagTopPro);
+    greenZone.lineTo(tx(diagTopPro), ty(diagTopCal));
+    // If diagonal hits goalCal before maxX, go right along goalCal to maxX
+    if (goalCal <= maxY) {
+      greenZone.lineTo(tx(maxX), ty(goalCal));
+    } else {
+      greenZone.lineTo(tx(maxX), ty(slopeCalPerPro * maxX));
+    }
+    greenZone.lineTo(tx(maxX), ty(0));
+    greenZone.closePath();
+    ctx.fillStyle = 'rgba(184,212,174,0.15)';
+    ctx.fill(greenZone);
+
+    // Red zone: above goalCal line (entire horizontal band)
+    if (goalCal < maxY) {
+      const redZone = new Path2D();
+      redZone.moveTo(pad.left, ty(goalCal));
+      redZone.lineTo(pad.left + cw, ty(goalCal));
+      redZone.lineTo(pad.left + cw, pad.top);
+      redZone.lineTo(pad.left, pad.top);
+      redZone.closePath();
+      ctx.fillStyle = 'rgba(232,180,168,0.15)';
+      ctx.fill(redZone);
+    }
+
+    // Grid — fixed tick steps
+    const xTicks = Math.round(maxX / proStep);
+    const yTicks = Math.round(maxY / calStep);
+    ctx.strokeStyle = '#e8e4de'; ctx.lineWidth = 1;
+    for (let i = 0; i <= xTicks; i++) {
+      const x = tx(proStep * i); ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top+ch); ctx.stroke();
+    }
+    for (let i = 0; i <= yTicks; i++) {
+      const y = ty(calStep * i); ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left+cw, y); ctx.stroke();
+    }
+
+    // Tick labels
+    ctx.fillStyle = '#b0aba4'; ctx.font = '10px DM Mono, monospace';
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= xTicks; i++) ctx.fillText((proStep*i)+'g', tx(proStep*i), pad.top+ch+16);
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= yTicks; i++) ctx.fillText(calStep*i, pad.left-6, ty(calStep*i)+4);
+
+    // Axis titles
+    ctx.fillStyle = '#c0bbb4'; ctx.font = '10px DM Sans, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('protein (g)', pad.left + cw/2, H - 4);
+    ctx.save(); ctx.translate(12, pad.top + ch/2); ctx.rotate(-Math.PI/2);
+    ctx.fillText('net calories (kcal)', 0, 0); ctx.restore();
+
+    // Density goal line (cal = pro * slopeCalPerPro)
+    const glEndPro = Math.min(maxX, maxY / slopeCalPerPro);
+    ctx.beginPath(); ctx.setLineDash([7, 5]); ctx.strokeStyle = '#c4b8d4'; ctx.lineWidth = 1.5;
+    ctx.moveTo(tx(0), ty(0)); ctx.lineTo(tx(glEndPro), ty(glEndPro * slopeCalPerPro));
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Helper: draw a pill label on an axis
+    function axisPill(text, x, y, bgColor, textColor) {
+      ctx.font = '500 10px DM Mono, monospace';
+      const tw = ctx.measureText(text).width;
+      const ph = 16, pw = tw + 12, pr = 8;
+      const px = x - pw / 2, py = y - ph / 2;
+      ctx.beginPath();
+      ctx.roundRect(px, py, pw, ph, pr);
+      ctx.fillStyle = bgColor; ctx.fill();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    // Protein goal line — vertical at x = goalPro, pill on bottom axis
+    ctx.beginPath(); ctx.setLineDash([4, 4]); ctx.strokeStyle = '#a8c4b6'; ctx.lineWidth = 1.2;
+    ctx.moveTo(tx(goalPro), pad.top); ctx.lineTo(tx(goalPro), pad.top + ch);
+    ctx.stroke(); ctx.setLineDash([]);
+    axisPill(`${goalPro}g`, tx(goalPro), pad.top + ch + 12, '#a8c4b6', '#2e6650');
+
+    // Calorie goal line — horizontal at y = goalCal, pill on left axis
+    ctx.beginPath(); ctx.setLineDash([4, 4]); ctx.strokeStyle = '#e8c49e'; ctx.lineWidth = 1.2;
+    ctx.moveTo(pad.left, ty(goalCal)); ctx.lineTo(pad.left + cw, ty(goalCal));
+    ctx.stroke(); ctx.setLineDash([]);
+    axisPill(`${goalCal}`, pad.left - 22, ty(goalCal), '#e8c49e', '#8a5428');
+
+    // Goal target dot (at goalPro, goalCal)
+    ctx.beginPath(); ctx.arc(tx(goalPro), ty(goalCal), 5, 0, Math.PI*2);
+    ctx.strokeStyle = '#c4b8d4'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#eceaf5'; ctx.fill();
+
+    // History trail — recomputed from live data every frame
+    _dotHitTargets = [];
+    _segmentHitTargets = [];
+
+    if (trail.length >= 1) {
+      const pts = [{ cal: 0, pro: 0 }, ...trail];
+      ctx.beginPath();
+      pts.forEach((p, i) => i === 0 ? ctx.moveTo(tx(p.pro), ty(p.cal)) : ctx.lineTo(tx(p.pro), ty(p.cal)));
+      ctx.strokeStyle = 'rgba(120,115,110,0.45)'; ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+
+      // Build segment hit targets between each consecutive trail point
+      const entries = getTrailEntries();
+      pts.forEach((p, i) => {
+        if (i === 0) return;
+        const x1 = tx(pts[i-1].pro), y1 = ty(pts[i-1].cal);
+        const x2 = tx(p.pro),        y2 = ty(p.cal);
+        const segLen = Math.hypot(x2 - x1, y2 - y1);
+        if (segLen < 16) return; // too short to reliably tap
+        const entry = entries[i - 1]; // segment i leads TO entry i-1
+        _segmentHitTargets.push({
+          x1, y1, x2, y2,
+          midX: (x1 + x2) / 2, midY: (y1 + y2) / 2,
+          label: entry ? entry.name : `step ${i}`,
+          sub: entry ? (entry.type === 'food'
+            ? `${entry.cal} cal · ${entry.pro}g protein`
+            : `+${entry.burn} cal burned`) : '',
+          cumLabel: `running: ${Math.round(p.pro)}g · ${Math.round(p.cal)} cal`
+        });
+      });
+
+      // Draw intermediate dots — all points on past days, all except last on today
+      const dotPoints = isToday() ? trail.slice(0, -1) : trail;
+      dotPoints.forEach((p, i) => {
+        const alpha = 0.35 + (i / trail.length) * 0.5;
+        const dotX = tx(p.pro), dotY = ty(p.cal);
+        const isSelected = _selectedDot && _selectedDot.dotX === dotX && _selectedDot.dotY === dotY;
+        ctx.beginPath(); ctx.arc(dotX, dotY, isSelected ? 6 : 3.5, 0, Math.PI*2);
+        ctx.fillStyle = isSelected ? 'rgba(100,95,90,0.9)' : `rgba(130,124,118,${alpha})`; ctx.fill();
+        if (isSelected) { ctx.strokeStyle = '#706a64'; ctx.lineWidth = 1.5; ctx.stroke(); }
+        const entry = entries[i];
+        _dotHitTargets.push({
+          dotX, dotY, r: 10,
+          label: entry ? entry.name : `step ${i+1}`,
+          sub: entry ? (entry.type === 'food' ? `${entry.cal} cal · ${entry.pro}g protein` : `+${entry.burn} burned`) : '',
+          cumLabel: `running: ${Math.round(p.pro)}g · ${Math.round(p.cal)} cal`
+        });
+      });
+    }
+
+    // Current dot — small solid with pulse ring (today only)
+    if (hasDot && isToday()) {
+      const cx = tx(t.pro), cy = ty(netCal);
+      const isSelected = _selectedDot && _selectedDot.isCurrent;
+      const dotR = isSelected ? 6 : 5;
+
+      // Pulsing ring
+      if (!isSelected) {
+        const ringR = 9 + pulse * 8;
+        const ringA = 0.18 - pulse * 0.15;
+        ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(122,159,176,${ringA})`; ctx.fill();
+      }
+
+      // Solid core dot — no stroke, just fill
+      ctx.beginPath(); ctx.arc(cx, cy, dotR, 0, Math.PI*2);
+      ctx.fillStyle = isSelected ? '#5a8fa0' : '#7aaabb';
+      ctx.fill();
+
+      const d = netCal > 0 ? (t.pro / netCal * 100).toFixed(1) : '—';
+      _dotHitTargets.push({
+        dotX: cx, dotY: cy, r: 14, isCurrent: true,
+        label: 'current total',
+        sub: `${Math.round(t.pro)}g protein · ${Math.round(netCal)} cal net`,
+        cumLabel: `${d}g/100cal`
+      });
+
+      if (!_selectedDot) {
+        const labelRight = t.pro < maxX * 0.65;
+        const ox = labelRight ? dotR + 6 : -(dotR + 6);
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = labelRight ? 'left' : 'right';
+        ctx.lineJoin = 'round';
+
+        // Line 1 — with halo
+        ctx.font = '500 11px DM Mono, monospace';
+        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.strokeText(`${Math.round(t.pro)}g · ${Math.round(netCal)} cal`, cx + ox, cy);
+        ctx.fillStyle = '#4a7a8a';
+        ctx.fillText(`${Math.round(t.pro)}g · ${Math.round(netCal)} cal`, cx + ox, cy);
+
+        ctx.lineWidth = 1; ctx.lineJoin = 'miter';
+        ctx.textBaseline = 'alphabetic';
+
+        _currentDotLabelZone = { x: cx + ox, side: labelRight ? 'right' : 'left', top: cy - 7, bottom: cy + 27 };
+      } else {
+        _currentDotLabelZone = null;
+      }
+    }
+
+    // Draw tooltip overlay for selected dot
+    if (_selectedDot) {
+      const { dotX, dotY, label, sub, cumLabel } = _selectedDot;
+      const PAD = 10, LINE = 16;
+      ctx.font = '500 12px DM Mono, monospace';
+      const w1 = ctx.measureText(label).width;
+      ctx.font = '300 10px DM Mono, monospace';
+      const w2 = ctx.measureText(sub).width;
+      const boxW = Math.max(w1, w2) + PAD * 2;
+      const boxH = PAD * 2 + LINE * 2;
+
+      // Position: prefer right, flip left if near edge
+      let bx = dotX + 12;
+      if (bx + boxW > W - 8) bx = dotX - boxW - 12;
+      let by = dotY - boxH / 2;
+      if (by < pad.top) by = pad.top;
+      if (by + boxH > pad.top + ch) by = pad.top + ch - boxH;
+
+      // Shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.10)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 3;
+
+      // Box
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 8);
+      ctx.fill();
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+      ctx.strokeStyle = '#e0ddd7'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(bx, by, boxW, boxH, 8); ctx.stroke();
+
+      // Text
+      ctx.textAlign = 'left';
+      ctx.font = '500 12px DM Mono, monospace'; ctx.fillStyle = '#272420';
+      ctx.fillText(label, bx + PAD, by + PAD + 11);
+      ctx.font = '300 10px DM Mono, monospace'; ctx.fillStyle = '#7a8fa0';
+      ctx.fillText(sub, bx + PAD, by + PAD + 11 + LINE);
+
+      // Connector line dot → box
+      ctx.beginPath();
+      ctx.moveTo(dotX, dotY);
+      ctx.lineTo(bx < dotX ? bx + boxW : bx, by + boxH / 2);
+      ctx.strokeStyle = '#d0cbc8'; ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+    }
+
+    // Preview dot — shown while typing in food/workout form
+    if (_preview && maxX > 0 && maxY > 0) {
+      const px = tx(prevPro), py = ty(prevNet);
+      const cx2 = tx(t.pro), cy2 = ty(curNetCal);
+
+      if (hasDot) {
+        ctx.beginPath(); ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = 'rgba(160,160,155,0.5)'; ctx.lineWidth = 1;
+        ctx.moveTo(cx2, cy2); ctx.lineTo(px, py);
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(168,212,182,0.35)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(100,140,120,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+      // Label lines — "PREVIEW:" header + item name
+      const nameStr = _preview.name || (_preview.burn ? 'workout' : '');
+      const line1 = 'PREVIEW:';
+      const line2 = nameStr;
+
+      ctx.font = '500 9px DM Mono, monospace';
+      const l1W = ctx.measureText(line1).width;
+      ctx.font = '500 11px DM Mono, monospace';
+      const l2W = nameStr ? ctx.measureText(line2).width : 0;
+      const labelW = Math.max(l1W, l2W);
+      const lineH = 13;
+      const totalH = nameStr ? lineH * 2 : lineH;
+      const dotR = 5;
+
+      // Label — anchor above the preview dot, prefer right, flip left if near edge
+      const goRight = px + dotR + 8 + labelW < pad.left + cw - 4;
+      const ox = goRight ? dotR + 8 : -(dotR + 8);
+      ctx.textAlign = goRight ? 'left' : 'right';
+
+      // Place above dot, clamp so it doesn't go off top of chart
+      let ly = py - totalH - dotR - 4;
+      if (ly < pad.top + 4) ly = py + dotR + 6;
+
+      ctx.textBaseline = 'top';
+
+      function haloText(text, font, fillColor, x, y) {
+        ctx.font = font;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineJoin = 'round';
+        ctx.strokeText(text, x, y);
+        ctx.fillStyle = fillColor;
+        ctx.fillText(text, x, y);
+      }
+
+      haloText(line1, '500 9px DM Mono, monospace', 'rgba(100,140,110,0.7)', px + ox, ly);
+      if (nameStr) {
+        haloText(line2, '500 11px DM Mono, monospace', 'rgba(40,90,60,0.95)', px + ox, ly + lineH);
+      }
+      ctx.textBaseline = 'alphabetic';
+      ctx.lineWidth = 1; ctx.lineJoin = 'miter';
+    }
+
+    // Axes border
+    ctx.strokeStyle = '#d8d4ce'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top+ch); ctx.lineTo(pad.left+cw, pad.top+ch); ctx.stroke();
+
+    // Always keep looping so canvas redraws on every data change
+    _chartRaf = requestAnimationFrame(frame);
+  }
+
+  _chartRaf = requestAnimationFrame(frame);
+}
+
+function updatePreview() {
+  const cal = parseFloat(document.getElementById('foodCal').value);
+  const pro = parseFloat(document.getElementById('foodPro').value);
+  const name = document.getElementById('foodName').value.trim();
+  _preview = (!isNaN(cal) || !isNaN(pro)) ? { cal: isNaN(cal) ? 0 : cal, pro: isNaN(pro) ? 0 : pro, name } : null;
+  updateStats();
+}
+
+function updateWorkoutPreview() {
+  const burn = parseFloat(document.getElementById('workoutBurn').value);
+  const name = document.getElementById('workoutName').value.trim();
+  _preview = !isNaN(burn) ? { burn, name } : null;
+  updateStats();
+}
+
+function clearPreview() { _preview = null; updateStats(); }
+
+let _rmrSex = 'male';
+
+function toggleSex() {
+  _rmrSex = _rmrSex === 'male' ? 'female' : 'male';
+  document.getElementById('sexMale').classList.toggle('active', _rmrSex === 'male');
+  document.getElementById('sexFemale').classList.toggle('active', _rmrSex === 'female');
+  calcRmr();
+}
+
+function stepField(id, delta) {
+  const el = document.getElementById(id);
+  el.value = (parseFloat(el.value) || 0) + delta;
+  calcRmr();
+}
+
+function calcRmr() {
+  const age    = parseFloat(document.getElementById('rmrAge').value);
+  const weight = parseFloat(document.getElementById('rmrWeight').value);
+  const ft     = parseFloat(document.getElementById('rmrHeightFt').value) || 0;
+  const inches = parseFloat(document.getElementById('rmrHeightIn').value) || 0;
+  const height = ft * 12 + inches; // total inches
+
+  const valEl = document.getElementById('rmrVal');
+
+  if (isNaN(age) || isNaN(weight) || height === 0) {
+    valEl.textContent = '—'; return;
+  }
+
+  const bmr = (4.536 * weight) + (12.7 * height) - (5 * age) + (_rmrSex === 'male' ? 5 : -161);
+  valEl.textContent = Math.round(bmr * 1.2);
+}
+
+function useRmr() {
+  const val = document.getElementById('rmrVal').textContent;
+  if (!val || val === '—') return;
+  document.getElementById('tdee').value = val;
+  tdee = parseFloat(val);
+  save(); updateProjection();
+  // scroll up to goals section and open it
+  const body = document.getElementById('body-goals');
+  const chev = document.getElementById('chevron-goals');
+  if (!body.classList.contains('open')) {
+    body.classList.add('open'); chev.classList.add('open');
+  }
+  document.getElementById('tdee').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function openRmrHelp() {
+  const existing = document.getElementById('rmrTooltip');
+  if (existing) { existing.remove(); return; }
+
+  const btn = document.querySelector('.help-btn');
+  const tooltip = document.createElement('div');
+  tooltip.id = 'rmrTooltip';
+  tooltip.className = 'help-tooltip';
+  tooltip.innerHTML = `calculate &amp; learn about RMR in the <span class="tooltip-link" onclick="goToRmr()">about section ↓</span>`;
+
+  btn.parentElement.appendChild(tooltip);
+
+  // Dismiss on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function dismiss(e) {
+      if (!tooltip.contains(e.target) && e.target !== btn) {
+        tooltip.remove();
+        document.removeEventListener('click', dismiss);
+      }
+    });
+  }, 0);
+}
+
+function goToRmr() {
+  document.getElementById('rmrTooltip')?.remove();
+  const body = document.getElementById('body-about');
+  const chev = document.getElementById('chevron-about');
+  if (!body.classList.contains('open')) {
+    body.classList.add('open'); chev.classList.add('open');
+  }
+  document.querySelector('.rmr-calc').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function exportData() {
+  try {
+    const db = await openDB();
+    const allKeys = await new Promise(resolve => {
+      if (!db) { resolve(Object.keys(localStorage).filter(k => k.startsWith('macro_'))); return; }
+      const req = db.transaction(STORE).objectStore(STORE).getAllKeys();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve([]);
+    });
+
+    const data = { version: 2, exportedAt: new Date().toISOString(), globals: {}, days: {} };
+    const globalsRaw = await dbGet('macro_globals');
+    if (globalsRaw) data.globals = JSON.parse(globalsRaw);
+    const dayKeys = allKeys.filter(k => k.startsWith('macro_day_'));
+    for (const key of dayKeys) {
+      const raw = await dbGet(key);
+      if (raw) data.days[key.replace('macro_day_', '')] = JSON.parse(raw);
+    }
+
+    showExportModal(JSON.stringify(data, null, 2));
+  } catch(e) {
+    showBackupStatus('export failed: ' + e.message, true);
+  }
+}
+
+function showExportModal(json) {
+  // Remove any existing modal
+  document.getElementById('exportModal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'exportModal';
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;flex-direction:column;padding:20px;box-sizing:border-box;`;
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;flex:1;display:flex;flex-direction:column;overflow:hidden;max-height:100%;">
+      <div style="padding:14px 16px;border-bottom:1px solid #e0ddd7;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-family:DM Mono,monospace;font-size:13px;font-weight:500;">backup data</span>
+        <button onclick="document.getElementById('exportModal').remove()" style="background:none;border:none;font-size:22px;color:#9c9590;cursor:pointer;padding:0 4px;">×</button>
+      </div>
+      <div style="padding:12px 16px;border-bottom:1px solid #e0ddd7;">
+        <p style="font-family:DM Mono,monospace;font-size:11px;color:#9c9590;margin-bottom:10px;">Copy this text and save it somewhere safe (Notes, email, etc.).</p>
+        <button onclick="copyExport()" style="width:100%;padding:10px;background:#272420;color:#faf9f7;border:none;border-radius:8px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer;" id="copyExportBtn">copy to clipboard</button>
+      </div>
+      <textarea id="exportText" readonly style="flex:1;padding:12px 16px;border:none;outline:none;font-family:DM Mono,monospace;font-size:16px;color:#444;resize:none;background:#f8f7f5;">${json}</textarea>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function copyExport() {
+  const text = document.getElementById('exportText').value;
+  navigator.clipboard?.writeText(text).then(() => {
+    const btn = document.getElementById('copyExportBtn');
+    btn.textContent = '✓ copied!';
+    setTimeout(() => btn.textContent = 'copy to clipboard', 2000);
+  }).catch(() => {
+    // Manual select fallback
+    const ta = document.getElementById('exportText');
+    ta.select(); ta.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    const btn = document.getElementById('copyExportBtn');
+    btn.textContent = '✓ copied!';
+    setTimeout(() => btn.textContent = 'copy to clipboard', 2000);
+  });
+}
+
+async function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!data.version || !data.globals) throw new Error('invalid backup file');
+
+    // Restore globals
+    await dbSet('macro_globals', JSON.stringify(data.globals));
+
+    // Restore all days
+    for (const [date, dayData] of Object.entries(data.days || {})) {
+      await dbSet('macro_day_' + date, JSON.stringify(dayData));
+    }
+
+    // Reload current state
+    await load();
+    render();
+    updateDateUI();
+    showBackupStatus(`✓ restored ${Object.keys(data.days || {}).length} days`);
+  } catch(err) {
+    showBackupStatus('import failed: ' + err.message, true);
+  }
+  e.target.value = ''; // reset file input
+}
+
+async function importFromPaste() {
+  const text = document.getElementById('importPasteArea').value.trim();
+  if (!text) { showBackupStatus('paste your backup text first', true); return; }
+  try {
+    const data = JSON.parse(text);
+    if (!data.version || !data.globals) throw new Error('invalid backup');
+    await dbSet('macro_globals', JSON.stringify(data.globals));
+    for (const [date, dayData] of Object.entries(data.days || {})) {
+      await dbSet('macro_day_' + date, JSON.stringify(dayData));
+    }
+    await load(); render(); updateDateUI();
+    document.getElementById('importPasteArea').value = '';
+    showBackupStatus(`✓ restored ${Object.keys(data.days || {}).length} days`);
+  } catch(err) {
+    showBackupStatus('invalid backup text', true);
+  }
+}
+
+function showBackupStatus(msg, isError = false) {
+  const el = document.getElementById('backupStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'backup-status' + (isError ? ' error' : '');
+  setTimeout(() => { el.textContent = ''; el.className = 'backup-status'; }, 4000);
+}
+
+function pointToSegmentDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+function toggleSection(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chevron-' + id);
+  const open = body.classList.toggle('open');
+  chev.classList.toggle('open', open);
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-food').classList.toggle('active', tab === 'food');
+  document.getElementById('tab-workout').classList.toggle('active', tab === 'workout');
+  document.getElementById('panel-food').style.display = tab === 'food' ? '' : 'none';
+  document.getElementById('panel-workout').style.display = tab === 'workout' ? '' : 'none';
+}
+
+async function init() {
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric'
+  });
+  await load(); renderPresets(); render(); updateProjection(); updateDateUI();
+  // Init RMR calculator
+  document.getElementById('sexMale').classList.add('active');
+  calcRmr();
+
+  ['foodName','foodCal','foodPro'].forEach(id =>
+    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') addFood(); })
+  );
+  ['workoutName','workoutBurn'].forEach(id =>
+    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') addWorkout(); })
+  );
+
+  // Preview while typing
+  ['foodCal','foodPro','foodName'].forEach(id =>
+    document.getElementById(id).addEventListener('input', () => {
+      clearSelectedPill('foodPresets');
+      updatePreview();
+    })
+  );
+  document.getElementById('workoutBurn').addEventListener('input', () => {
+    clearSelectedPill('workoutPresets');
+    updateWorkoutPreview();
+  });
+  document.getElementById('workoutName').addEventListener('input', () => {
+    clearSelectedPill('workoutPresets');
+  });
+
+  const ro = new ResizeObserver(() => drawChart());
+  ro.observe(document.getElementById('chartWrap'));
+
+  // Dot click / deselect
+  document.getElementById('chart').addEventListener('click', e => {
+    const canvas = document.getElementById('chart');
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    // Check dots first
+    let hit = null;
+    for (const d of _dotHitTargets) {
+      const dist = Math.hypot(mx - d.dotX, my - d.dotY);
+      if (dist <= d.r) { hit = d; break; }
+    }
+
+    // If no dot hit, check segments
+    if (!hit) {
+      let bestDist = 14; // max px from line to count as a hit
+      for (const seg of _segmentHitTargets) {
+        const dist = pointToSegmentDist(mx, my, seg.x1, seg.y1, seg.x2, seg.y2);
+        if (dist < bestDist) {
+          bestDist = dist;
+          // Represent segment hit as a "dot" at the midpoint for the tooltip
+          hit = { dotX: seg.midX, dotY: seg.midY, label: seg.label, sub: seg.sub, cumLabel: seg.cumLabel };
+        }
+      }
+    }
+
+    if (hit) {
+      if (_selectedDot && _selectedDot.dotX === hit.dotX && _selectedDot.dotY === hit.dotY) {
+        _selectedDot = null;
+      } else {
+        _selectedDot = hit;
+      }
+    } else {
+      _selectedDot = null;
+    }
+  });
+  // Clear dot tooltip when tapping outside the chart
+  document.addEventListener('touchstart', e => {
+    if (!document.getElementById('chartWrap').contains(e.target)) {
+      _selectedDot = null;
+    }
+  }, { passive: true });
+
+  // Swipe left/right on header or chart to change days
+  let _daySwiping = null;
+  function addDaySwipe(el) {
+    el.addEventListener('touchstart', e => {
+      _daySwiping = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, { passive: true });
+    el.addEventListener('touchend', e => {
+      if (!_daySwiping) return;
+      const dx = e.changedTouches[0].clientX - _daySwiping.x;
+      const dy = e.changedTouches[0].clientY - _daySwiping.y;
+      _daySwiping = null;
+      if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+      changeDay(dx < 0 ? 1 : -1);
+    });
+  }
+  addDaySwipe(document.querySelector('header'));
+  addDaySwipe(document.getElementById('chartWrap'));
+}
+
+init();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
