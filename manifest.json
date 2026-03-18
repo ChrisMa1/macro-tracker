@@ -1,21 +1,22 @@
 {
   "name": "Macro Tracker",
-  "short_name": "Macros",
+  "short_name": "Macro Tracker",
   "description": "Track protein density and net calories",
-  "start_url": "/",
+  "start_url": "/macro-tracker/index.html",
+  "scope": "/macro-tracker/",
   "display": "standalone",
   "background_color": "#e4dfd8",
   "theme_color": "#e4dfd8",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "/macro-tracker/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "/macro-tracker/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
